@@ -1,0 +1,21 @@
+{
+  "name": "loom",
+  "private": true,
+  "version": "0.0.0",
+  "type": "module",
+  "workspaces": [
+    "packages/*"
+  ],
+  "engines": {
+    "bun": ">=1.3.0"
+  },
+  "scripts": {
+    "typecheck": "tsc --build",
+    "spec:test": "bun test packages/spec",
+    "loom": "bun packages/cli/src/loom.ts"
+  },
+  "devDependencies": {
+    "@types/bun": "^1.3.14",
+    "typescript": "^5.7.2"
+  }
+}

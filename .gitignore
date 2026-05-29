@@ -1,0 +1,18 @@
+node_modules/
+dist/
+*.tsbuildinfo
+.DS_Store
+
+# Remotion / render artifacts
+packages/render/out/
+**/output/*.mp4
+
+# user project asset blobs are kept, but generated caches are not
+.loom-cache/
+
+# generated video projects (the runs) — keep the code repo shareable
+projects/
+
+# env / secrets
+.env
+.env.local
