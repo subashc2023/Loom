@@ -2,6 +2,9 @@ import { Composition } from "remotion";
 import { parseProject, totalDurationFrames, type Project } from "@loom/spec";
 import { LoomVideo } from "./LoomVideo";
 import { fixtureProject } from "./fixtures/fixture";
+// Side-effect import: registers + preloads the embedded fonts (Inter, JetBrains
+// Mono) so renders are deterministic and don't depend on host-installed fonts.
+import "./fonts";
 
 /**
  * Registers the LoomVideo composition. All of Remotion's required metadata —

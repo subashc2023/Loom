@@ -1,6 +1,7 @@
 import { AbsoluteFill, interpolate, useCurrentFrame, useVideoConfig } from "remotion";
 import type { Slide } from "@loom/spec";
 import { easedEnter } from "../anim";
+import { useScaledType } from "../type";
 
 type BulletsContent = Extract<Slide, { layout: "bullets" }>["content"];
 
@@ -20,11 +21,12 @@ const LEAD_MS = 330;
 export function BulletsSlide({ content }: { content: BulletsContent }) {
   const frame = useCurrentFrame();
   const { fps } = useVideoConfig();
+  const { rem, px } = useScaledType();
 
   const titleEnter = easedEnter(frame, fps, 600);
 
   // Shrink the items a touch as the list gets long so it stays on-screen.
-  const itemSize = content.items.length > 5 ? "2.4rem" : "2.9rem";
+  const itemSize = content.items.length > 5 ? rem(2.4) : rem(2.9);
 
   return (
     <AbsoluteFill
@@ -40,10 +42,10 @@ export function BulletsSlide({ content }: { content: BulletsContent }) {
           style={{
             fontFamily: "var(--font-display)",
             fontWeight: 800,
-            fontSize: "4.2rem",
+            fontSize: rem(4.2),
             lineHeight: 1.1,
             letterSpacing: "-0.02em",
-            margin: "0 0 3.5rem",
+            margin: `0 0 ${rem(3.5)}`,
             opacity: titleEnter,
             transform: `translateY(${interpolate(titleEnter, [0, 1], [24, 0])}px)`,
           }}
@@ -62,8 +64,8 @@ export function BulletsSlide({ content }: { content: BulletsContent }) {
               style={{
                 display: "flex",
                 alignItems: "baseline",
-                gap: "1.5rem",
-                margin: "0 0 1.6rem",
+                gap: rem(1.5),
+                margin: `0 0 ${rem(1.6)}`,
                 opacity: enter,
                 transform: `translateY(${interpolate(enter, [0, 1], [18, 0])}px)`,
               }}
@@ -71,9 +73,9 @@ export function BulletsSlide({ content }: { content: BulletsContent }) {
               <span
                 style={{
                   flexShrink: 0,
-                  width: "0.85rem",
-                  height: "0.85rem",
-                  borderRadius: 3,
+                  width: rem(0.85),
+                  height: rem(0.85),
+                  borderRadius: px(3),
                   background: "var(--accent)",
                   // Nudge the square onto the text baseline.
                   transform: "translateY(-0.15em)",

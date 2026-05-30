@@ -1,6 +1,7 @@
 import { AbsoluteFill, interpolate } from "remotion";
 import type { Slide } from "@loom/spec";
 import { useEnter } from "../anim";
+import { useScaledType } from "../type";
 
 type QuoteContent = Extract<Slide, { layout: "quote" }>["content"];
 
@@ -13,8 +14,9 @@ export function QuoteSlide({ content }: { content: QuoteContent }) {
   const enter = useEnter(730);
   // The attribution trails the quote so the eye lands on the words first.
   const attrEnter = useEnter(600, 530);
+  const { rem } = useScaledType();
 
-  const quoteSize = content.text.length > 120 ? "3.6rem" : "5rem";
+  const quoteSize = content.text.length > 120 ? rem(3.6) : rem(5);
 
   return (
     <AbsoluteFill
@@ -33,10 +35,10 @@ export function QuoteSlide({ content }: { content: QuoteContent }) {
           style={{
             fontFamily: "var(--font-display)",
             fontWeight: 800,
-            fontSize: "9rem",
+            fontSize: rem(9),
             lineHeight: 0.6,
             color: "var(--accent)",
-            marginBottom: "1.5rem",
+            marginBottom: rem(1.5),
             // The glyph carries built-in side bearing; pull it back to center.
             marginLeft: "-0.1em",
           }}
@@ -59,9 +61,9 @@ export function QuoteSlide({ content }: { content: QuoteContent }) {
           <p
             style={{
               fontFamily: "var(--font-body)",
-              fontSize: "2.2rem",
+              fontSize: rem(2.2),
               opacity: attrEnter * 0.75,
-              margin: "2.5rem 0 0",
+              margin: `${rem(2.5)} 0 0`,
               transform: `translateY(${interpolate(attrEnter, [0, 1], [12, 0])}px)`,
             }}
           >

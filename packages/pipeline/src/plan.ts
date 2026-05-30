@@ -101,9 +101,22 @@ const PlanSlide = z
         .max(8)
         .describe("chart layout: 2-8 data points. Use only data given in the prompt or genuinely common knowledge — never invent precise statistics."),
     }),
+    z.object({
+      layout: z.literal("manim"),
+      sceneSource: z
+        .string()
+        .min(1)
+        .describe(
+          "manim layout: a COMPLETE, self-contained Manim Community Python module. Start with `from manim import *` and define one Scene subclass with a `construct(self)` method. Keep it short (≤ ~40 lines) and correct: no file/network/external-asset access, no extra dependencies, deterministic. Animate ONE idea (a graph drawing itself, vectors transforming, a shape morphing).",
+        ),
+      sceneName: z
+        .string()
+        .min(1)
+        .describe("manim layout: the exact Scene subclass name defined in sceneSource to render."),
+    }),
   ])
   .describe(
-    "One visual. 'title' for opener/closer, 'image' for a full-bleed visual, 'imageText' for an image with a caption, 'bullets' for a few parallel points, 'quote' for a pulled-out line, 'code' for a snippet, 'chart' for simple data.",
+    "One visual. 'title' for opener/closer, 'image' for a full-bleed visual, 'imageText' for an image with a caption, 'bullets' for a few parallel points, 'quote' for a pulled-out line, 'code' for a snippet, 'chart' for simple data, 'manim' for a programmatic animation of a math/geometry idea.",
   );
 
 const PlanScene = z.object({
@@ -165,6 +178,7 @@ function systemPrompt(sceneCount?: number, template?: Template, aspectRatio?: st
     "- 'quote' — one punchy line worth enlarging. Only attribute REAL quotes; otherwise leave attribution empty.",
     "- 'code' — a short, correct snippet for technical topics (set `language`; spotlight key lines with `highlightLines`).",
     "- 'chart' — simple data with 2-8 points. Use ONLY data from the prompt or genuine common knowledge; never fabricate statistics.",
+    "- 'manim' — a programmatic animation for a math/geometry idea (a curve being drawn, vectors transforming, a shape morphing) where motion teaches more than a still. Use RARELY, and only when you can write a SHORT, correct, self-contained Manim Community scene. It needs the `manim` binary at render time; without it the slide shows a placeholder, so never make it the only way a key point lands.",
     "- Most scenes have ONE slide. Give a scene 2-3 slides only when its narration has distinct visual moments — a cut should land on a key word, not chop a sentence.",
     "",
     "Write like the best explainer you've ever watched, not a Wikipedia intro:",
@@ -294,5 +308,12 @@ function slideContent(slide: PlanSlideT) {
         },
       };
     }
+    case "manim":
+      // The brief carries the scene source + name; `loom manim` renders it to a
+      // clip later (filling in `clip` + the real durationMs).
+      return {
+        layout: "manim" as const,
+        content: { sceneSource: slide.sceneSource, sceneName: slide.sceneName },
+      };
   }
 }

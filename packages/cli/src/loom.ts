@@ -7,6 +7,7 @@ import { render, type Quality } from "./commands/render";
 import { plan } from "./commands/plan";
 import { script } from "./commands/script";
 import { voice } from "./commands/voice";
+import { music } from "./commands/music";
 import { record } from "./commands/record";
 import { align } from "./commands/align";
 import { slides } from "./commands/slides";
@@ -36,6 +37,10 @@ ${c.bold("Your own voice (no API key):")}
   record             record a scene from your mic (playback + keep/redo)
   voice --import <f> use a file you recorded elsewhere as a scene's narration
 
+${c.bold("Music (no API key):")}
+  music --import <f> add a background-music bed (loops + ducks under narration)
+                     tune with --volume/--duck; remove with --clear
+
 ${c.bold("Build:")}
   init <name>        scaffold a new project (--template <key> --aspect <ratio>)
   templates          list the available project templates
@@ -59,6 +64,9 @@ ${c.bold("Options:")}
       --voice-id <id>      voice: ElevenLabs voice id
       --import <file>      voice: use this audio file instead of TTS (needs --scene)
       --device <name>      record: mic device (default: first input found)
+      --volume <0..1>      music: base level in narration-free gaps (default 0.3)
+      --duck <0..1>        music: level while narration plays (default 0.1)
+      --clear              music: remove the music bed
       --variations <n>     slides: generate n candidates for --slide and pick one
       --set-reference <r>  slides: set the style lock to a slide id or image file
       --query <terms>      source: override a slide's search keywords
@@ -108,6 +116,9 @@ async function main() {
       "voice-id": { type: "string" },
       import: { type: "string" },
       device: { type: "string" },
+      volume: { type: "string" },
+      duck: { type: "string" },
+      clear: { type: "boolean" },
       variations: { type: "string" },
       "set-reference": { type: "string" },
       query: { type: "string" },
@@ -151,6 +162,15 @@ async function main() {
       return;
     case "record":
       await record({ project: values.project, scene: values.scene, device: values.device });
+      return;
+    case "music":
+      music({
+        project: values.project,
+        importFile: values.import,
+        volume: parseLevel(values.volume, "--volume"),
+        duckTo: parseLevel(values.duck, "--duck"),
+        clear: values.clear,
+      });
       return;
     case "align":
       await align({ project: values.project, scene: values.scene, reroll: values.reroll });
@@ -235,6 +255,15 @@ function parseLimit(v?: string): number | undefined {
   if (v === undefined) return undefined;
   const n = Number.parseInt(v, 10);
   if (!Number.isInteger(n) || n < 1 || n > 20) fail(`--limit must be an integer 1-20, got "${v}"`);
+  return n;
+}
+
+// A 0..1 audio level (music volume/duck). Rejects out-of-range so the failure is
+// a clean CLI message rather than a Zod error deep in the spec.
+function parseLevel(v: string | undefined, flag: string): number | undefined {
+  if (v === undefined) return undefined;
+  const n = Number.parseFloat(v);
+  if (!Number.isFinite(n) || n < 0 || n > 1) fail(`${flag} must be a number 0..1, got "${v}"`);
   return n;
 }
 

@@ -1,6 +1,7 @@
 import { AbsoluteFill, Img, interpolate, staticFile, useCurrentFrame, useVideoConfig } from "remotion";
 import type { Motion, Slide } from "@loom/spec";
 import { useEnter } from "../anim";
+import { useScaledType } from "../type";
 import { kenBurnsTransform } from "../motion";
 import { CreditBadge } from "./CreditBadge";
 import { ImagePlaceholder } from "./ImagePlaceholder";
@@ -41,6 +42,7 @@ export function ImageTextSlide({ content, motion }: { content: ImageTextContent;
 }
 
 function TextBlock({ content }: { content: ImageTextContent }) {
+  const { rem } = useScaledType();
   return (
     <>
       {content.heading ? (
@@ -48,8 +50,8 @@ function TextBlock({ content }: { content: ImageTextContent }) {
           style={{
             fontFamily: "var(--font-display)",
             fontWeight: 700,
-            fontSize: "3.4rem",
-            margin: "0 0 1rem",
+            fontSize: rem(3.4),
+            margin: `0 0 ${rem(1)}`,
             lineHeight: 1.1,
             letterSpacing: "-0.02em",
           }}
@@ -57,7 +59,7 @@ function TextBlock({ content }: { content: ImageTextContent }) {
           {content.heading}
         </h2>
       ) : null}
-      <p style={{ fontFamily: "var(--font-body)", fontSize: "2rem", lineHeight: 1.4, margin: 0 }}>
+      <p style={{ fontFamily: "var(--font-body)", fontSize: rem(2), lineHeight: 1.4, margin: 0 }}>
         {content.body}
       </p>
     </>

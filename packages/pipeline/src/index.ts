@@ -38,6 +38,7 @@ export {
   type SourceOptions,
 } from "./source";
 export { synthesizeVoice, type VoiceOptions, type VoiceResult } from "./voice";
+export { attachMusic, MUSIC_REL, type MusicOptions, type MusicResult } from "./music";
 export { alignCaptions, type AlignOptions, type AlignResult } from "./align";
 export {
   applyVariation,

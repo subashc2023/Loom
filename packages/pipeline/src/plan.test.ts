@@ -37,12 +37,18 @@ describe("applyPlan layout mapping", () => {
             },
           ],
         },
+        {
+          script: "one two three",
+          slides: [
+            { layout: "manim", sceneSource: "from manim import *\nclass Demo(Scene):\n    def construct(self):\n        self.add(Dot())", sceneName: "Demo" },
+          ],
+        },
       ],
     };
 
     // applyPlan re-validates via parseProject, so a bad mapping would throw here.
     const project = applyPlan(base, plan);
-    expect(project.scenes).toHaveLength(4);
+    expect(project.scenes).toHaveLength(5);
 
     const bullets = slideOf(project, 0, "bullets");
     expect(bullets.content).toMatchObject({ title: "Why", items: ["fast", "cheap"] });
@@ -61,6 +67,11 @@ describe("applyPlan layout mapping", () => {
       { Year: "2020", value: 10 },
       { Year: "2021", value: 25 },
     ]);
+
+    const manim = slideOf(project, 4, "manim");
+    expect(manim.content.sceneName).toBe("Demo");
+    expect(manim.content.sceneSource).toContain("class Demo(Scene)");
+    expect(manim.content.clip).toBeUndefined(); // a brief — `loom manim` fills the clip later
   });
 
   test("chart categoryLabel defaults to 'Label' when omitted", () => {

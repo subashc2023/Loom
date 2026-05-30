@@ -24,7 +24,9 @@ export function themeStyle(project: Project): React.CSSProperties {
 
 const SANS_FALLBACK = `system-ui, -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif`;
 const SERIF_FALLBACK = `Georgia, Cambria, "Times New Roman", Times, serif`;
-const MONO_STACK = `ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, "Liberation Mono", monospace`;
+// "JetBrains Mono" is embedded (see fonts.ts), so it leads the stack; the rest
+// are system fallbacks for when the embed isn't present (e.g. Studio without it).
+const MONO_STACK = `"JetBrains Mono", ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, "Liberation Mono", monospace`;
 
 /** Font names that should fall back to a serif stack, not the sans default. */
 const SERIF_FONTS = new Set([

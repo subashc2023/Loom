@@ -92,6 +92,7 @@ default `anthropic:claude-opus-4-8`. Set the matching key for whichever provider
 | `templates`        | list the built-in style templates                       |
 | `record`           | narrate a scene from your own microphone                |
 | `voice --import`   | use an audio file you recorded elsewhere                |
+| `music --import`   | add a background-music bed (loops + ducks under narration)|
 | `source`           | pull real, freely-licensed images from Commons + Openverse|
 | `cut`              | snap slide changes onto emphasis beats                  |
 | `manim`            | render Manim animations (needs the Manim binary, no key)|
@@ -144,6 +145,7 @@ loom slides           # Gemini fills any briefs without a real image (needs GEMI
 
 # 4. Polish + render
 loom cut              # snap multi-slide cuts to emphasis beats
+# loom music --import bed.mp3   # optional: a background-music bed (no key)
 loom compose         # validate + preview the timeline in your terminal
 loom render --quality final     #  →  output/final.mp4
 ```
@@ -198,6 +200,16 @@ repo root). Run `loom help` for the full option list.
   spoken*, giving you word-level captions with a current-word highlight (on by
   default).
 
+### Music
+
+- **`loom music --import <file>`** — add a background-music bed (bring your own
+  royalty-free or licensed track; no API key). The file is transcoded to a
+  normalized stereo mp3 in `assets/music/` and the renderer **loops** it over the
+  whole video and **ducks** it under narration (a sidechain-style dip), so a short
+  clip works fine. Tune the levels with `--volume <0..1>` (base level in the gaps)
+  and `--duck <0..1>` (level while someone is speaking); rerun with just those
+  flags to retune an existing bed, or `--clear` to remove it.
+
 ### Imagery & visuals
 
 - **`loom source`** — find **real** images for slide briefs from two public
@@ -233,7 +245,9 @@ repo root). Run `loom help` for the full option list.
     not-looking-AI-generated.
 - **`loom manim`** — for technical/math content: renders a [Manim](https://docs.manim.community)
   animation from the Python scene embedded in a `manim` slide and embeds the result.
-  Needs the Manim binary, but no API key.
+  Needs the Manim binary, but no API key. `loom plan` can emit these slides itself
+  (a self-contained Manim scene) when a math/geometry beat is better animated than
+  shown still; until you run `loom manim` they render as a clean placeholder.
 
 ### Polish, check, render
 

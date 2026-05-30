@@ -1,6 +1,7 @@
 import { AbsoluteFill, interpolate } from "remotion";
 import type { Slide } from "@loom/spec";
 import { useEnter } from "../anim";
+import { useScaledType } from "../type";
 
 type TitleContent = Extract<Slide, { layout: "title" }>["content"];
 
@@ -9,6 +10,7 @@ export function TitleSlide({ content }: { content: TitleContent }) {
   // Gentle rise + fade on entry so a static card still feels alive.
   const enter = useEnter(600);
   const y = interpolate(enter, [0, 1], [24, 0]);
+  const { rem, px } = useScaledType();
 
   return (
     <AbsoluteFill
@@ -24,7 +26,7 @@ export function TitleSlide({ content }: { content: TitleContent }) {
           style={{
             fontFamily: "var(--font-display)",
             fontWeight: 800,
-            fontSize: "6.5rem",
+            fontSize: rem(6.5),
             lineHeight: 1.05,
             margin: 0,
             letterSpacing: "-0.03em",
@@ -34,18 +36,18 @@ export function TitleSlide({ content }: { content: TitleContent }) {
         </h1>
         <div
           style={{
-            width: 120,
-            height: 6,
+            width: px(120),
+            height: px(6),
             background: "var(--accent)",
             borderRadius: 3,
-            margin: "2.5rem auto",
+            margin: `${rem(2.5)} auto`,
           }}
         />
         {content.subtitle ? (
           <p
             style={{
               fontFamily: "var(--font-body)",
-              fontSize: "2.4rem",
+              fontSize: rem(2.4),
               opacity: 0.8,
               margin: 0,
               fontWeight: 400,
