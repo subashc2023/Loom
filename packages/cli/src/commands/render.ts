@@ -24,10 +24,18 @@ export async function render(opts: {
   project?: string;
   quality?: Quality;
   out?: string;
+  captions?: boolean;
 }): Promise<void> {
   const root = resolveProjectRoot(opts.project);
   const project = loadProject(root);
   const quality: Quality = opts.quality ?? "draft";
+
+  // Per-render override of the project's caption setting, so a spec authored
+  // with captions can be re-rendered clean (or vice versa) without editing it.
+  if (opts.captions !== undefined && opts.captions !== project.style.captions) {
+    project.style.captions = opts.captions;
+    log.step(`captions ${opts.captions ? "on" : "off"} ${c.dim("(overriding the spec for this render)")}`);
+  }
 
   if (totalDurationMs(project) <= 0) {
     fail("project has zero duration — add a scene with a slide or audio before rendering.");

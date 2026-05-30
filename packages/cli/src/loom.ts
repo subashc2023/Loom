@@ -47,6 +47,7 @@ ${c.bold("Options:")}
   -p, --project <dir>      project dir or a name under projects/ (default: cwd)
   -q, --quality <q>        render quality: draft | final (default: draft)
   -o, --out <path>         render output file (default: output/<quality>.mp4)
+      --no-captions        render: drop burned-in captions (--captions forces them on)
       --strict             compose: fail (not warn) on missing assets
       --model <id>         override the Claude/Gemini model (plan/script/slides)
       --template <key>     init/plan: style preset + plan steering (see: loom templates)
@@ -113,6 +114,8 @@ async function main() {
       auto: { type: "boolean" },
       limit: { type: "string" },
       reroll: { type: "boolean" },
+      captions: { type: "boolean" },
+      "no-captions": { type: "boolean" },
       help: { type: "boolean", short: "h" },
     },
   });
@@ -186,7 +189,7 @@ async function main() {
     case "render": {
       const quality = (values.quality ?? "draft") as Quality;
       if (quality !== "draft" && quality !== "final") fail(`unknown quality "${quality}" (use draft|final)`);
-      await render({ project: values.project, quality, out: values.out });
+      await render({ project: values.project, quality, out: values.out, captions: resolveCaptions(values) });
       return;
     }
     default:
@@ -216,6 +219,15 @@ function parsePick(v?: string): number | undefined {
   const n = Number.parseInt(v, 10);
   if (!Number.isInteger(n) || n < 1) fail(`--pick must be a positive integer, got "${v}"`);
   return n;
+}
+
+// `--no-captions` / `--captions` → an explicit override, or undefined to keep
+// the spec's setting. Passing both at once is a contradiction, so reject it.
+function resolveCaptions(values: { captions?: boolean; "no-captions"?: boolean }): boolean | undefined {
+  if (values.captions && values["no-captions"]) fail("pass either --captions or --no-captions, not both");
+  if (values["no-captions"]) return false;
+  if (values.captions) return true;
+  return undefined;
 }
 
 function parseLimit(v?: string): number | undefined {
