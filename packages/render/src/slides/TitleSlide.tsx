@@ -1,16 +1,13 @@
-import { AbsoluteFill, interpolate, useCurrentFrame } from "remotion";
+import { AbsoluteFill, interpolate } from "remotion";
 import type { Slide } from "@loom/spec";
+import { useEnter } from "../anim";
 
 type TitleContent = Extract<Slide, { layout: "title" }>["content"];
 
 /** Centered title card with an optional subtitle and an accent underline. */
 export function TitleSlide({ content }: { content: TitleContent }) {
-  const frame = useCurrentFrame();
   // Gentle rise + fade on entry so a static card still feels alive.
-  const enter = interpolate(frame, [0, 18], [0, 1], {
-    extrapolateLeft: "clamp",
-    extrapolateRight: "clamp",
-  });
+  const enter = useEnter(600);
   const y = interpolate(enter, [0, 1], [24, 0]);
 
   return (

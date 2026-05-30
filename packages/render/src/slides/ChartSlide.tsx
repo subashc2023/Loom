@@ -1,5 +1,6 @@
-import { AbsoluteFill, interpolate, useCurrentFrame, useVideoConfig } from "remotion";
+import { AbsoluteFill, useCurrentFrame, useVideoConfig } from "remotion";
 import type { Slide } from "@loom/spec";
+import { easedEnter } from "../anim";
 import {
   areaPath,
   formatNumber,
@@ -31,11 +32,11 @@ function num(v: string | number | undefined): number {
  */
 export function ChartSlide({ content }: { content: ChartContent }) {
   const frame = useCurrentFrame();
-  const { width, height } = useVideoConfig();
+  const { width, height, fps } = useVideoConfig();
 
-  // Entrance: fade the whole chart, then "grow" the data in.
-  const fade = interpolate(frame, [0, 12], [0, 1], { extrapolateLeft: "clamp", extrapolateRight: "clamp" });
-  const grow = interpolate(frame, [6, 30], [0, 1], { extrapolateLeft: "clamp", extrapolateRight: "clamp" });
+  // Entrance: fade the whole chart, then "grow" the data in (eased + fps-aware).
+  const fade = easedEnter(frame, fps, 400);
+  const grow = easedEnter(frame, fps, 800, 200);
 
   const rows = content.data;
   const labels = rows.map((r) => String(r[content.xKey] ?? ""));

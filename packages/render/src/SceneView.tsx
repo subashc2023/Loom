@@ -2,6 +2,7 @@ import { AbsoluteFill, Audio, Sequence, interpolate, staticFile, useCurrentFrame
 import { msToFrames, type Scene, type Transition } from "@loom/spec";
 import { SlideView } from "./slides/SlideView";
 import { Captions } from "./Captions";
+import { EASE_OUT } from "./anim";
 
 /**
  * Render one scene: its narration audio plus its slides, each placed on the
@@ -53,8 +54,10 @@ function useEntrance(frame: number, fps: number, incoming: Transition | null): R
     extrapolateRight: "clamp",
   });
   if (incoming.type === "slide") {
-    return { transform: `translateX(${interpolate(t, [0, 1], [100, 0])}%)` };
+    // Ease the slide-in so it decelerates into place; a linear push reads cheap.
+    return { transform: `translateX(${interpolate(t, [0, 1], [100, 0], { easing: EASE_OUT })}%)` };
   }
-  // fade
+  // Fade stays linear — a crossfade against the outgoing scene reads cleanest
+  // when both opacities ramp evenly.
   return { opacity: t };
 }

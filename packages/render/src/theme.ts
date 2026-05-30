@@ -14,13 +14,39 @@ export function themeStyle(project: Project): React.CSSProperties {
     ["--accent" as string]: palette.accent,
     ["--font-display" as string]: fontStack(fonts.display),
     ["--font-body" as string]: fontStack(fonts.body),
+    // CodeSlide reads --font-mono; define it here so it isn't silently undefined.
+    ["--font-mono" as string]: MONO_STACK,
     backgroundColor: palette.bg,
     color: palette.fg,
     fontFamily: fontStack(fonts.body),
   };
 }
 
-/** Wrap a font name in a sensible cross-platform fallback stack. */
+const SANS_FALLBACK = `system-ui, -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif`;
+const SERIF_FALLBACK = `Georgia, Cambria, "Times New Roman", Times, serif`;
+const MONO_STACK = `ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, "Liberation Mono", monospace`;
+
+/** Font names that should fall back to a serif stack, not the sans default. */
+const SERIF_FONTS = new Set([
+  "georgia",
+  "times",
+  "times new roman",
+  "garamond",
+  "playfair display",
+  "merriweather",
+  "pt serif",
+  "lora",
+  "noto serif",
+  "source serif pro",
+]);
+
+/**
+ * Wrap a font name in a cross-platform fallback stack. The generic family is
+ * chosen to match the named font's category, so when the chosen font isn't
+ * installed (common on a headless renderer) a serif display like Georgia falls
+ * back to a serif — not a sans — and the typography still reads as intended.
+ */
 export function fontStack(name: string): string {
-  return `"${name}", system-ui, -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif`;
+  const generic = SERIF_FONTS.has(name.trim().toLowerCase()) ? SERIF_FALLBACK : SANS_FALLBACK;
+  return `"${name}", ${generic}`;
 }

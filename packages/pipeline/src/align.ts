@@ -3,6 +3,7 @@ import { join } from "node:path";
 import type { CaptionWord, Project, Scene } from "@loom/spec";
 import { requireKey } from "./env";
 import { PipelineError } from "./errors";
+import { fetchResilient, readJson } from "./http";
 
 /**
  * `align` produces word-level caption timing for each voiced scene. It uses
@@ -104,24 +105,19 @@ async function alignOne(
   form.append("file", new Blob([new Uint8Array(bytes)], { type: "audio/mpeg" }), "audio.mp3");
   form.append("text", text);
 
-  let res: Response;
-  try {
-    // Let fetch set the multipart boundary; only the API key header is ours.
-    res = await fetch(FORCED_ALIGNMENT_URL, {
-      method: "POST",
-      headers: { "xi-api-key": apiKey },
-      body: form,
-    });
-  } catch (e) {
-    throw new PipelineError(`could not reach ElevenLabs: ${(e as Error).message}`);
-  }
+  // Let fetch set the multipart boundary; only the API key header is ours.
+  const res = await fetchResilient(
+    FORCED_ALIGNMENT_URL,
+    { method: "POST", headers: { "xi-api-key": apiKey }, body: form },
+    { service: "ElevenLabs", timeoutMs: 120_000 },
+  );
   if (!res.ok) {
     throw new PipelineError(
       `ElevenLabs forced-alignment error ${res.status}: ${(await res.text()).slice(0, 500)}`,
     );
   }
 
-  const data = (await res.json()) as AlignmentResponse;
+  const data = await readJson<AlignmentResponse>(res, "ElevenLabs");
   if (!Array.isArray(data.words) || data.words.length === 0) {
     throw new PipelineError("ElevenLabs returned no word alignment.");
   }

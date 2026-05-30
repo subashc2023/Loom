@@ -1,7 +1,7 @@
 export { PipelineError } from "./errors";
 export { loadEnv, requireKey } from "./env";
 export { DEFAULT_MODEL, resolveModel, generateStructured } from "./llm";
-export { attachAudio, estimateNarrationMs, probeDurationMs, transcodeToMp3 } from "./audio";
+export { attachAudio, estimateNarrationMs, fitSlidesToDuration, probeDurationMs, transcodeToMp3 } from "./audio";
 export {
   captureArgs,
   captureInputFormat,

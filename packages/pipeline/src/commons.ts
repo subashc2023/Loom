@@ -1,5 +1,6 @@
 import { writeFileSync } from "node:fs";
 import { PipelineError } from "./errors";
+import { fetchResilient, readJson } from "./http";
 
 /**
  * Wikimedia Commons image search, ranked by an *authoritative* quality signal so
@@ -99,17 +100,16 @@ export async function searchCommons(query: string, opts: SearchOptions = {}): Pr
     gulimit: "200",
   });
 
-  let res: Response;
-  try {
-    res = await fetch(`${COMMONS_API}?${params}`, { headers: { "user-agent": USER_AGENT } });
-  } catch (e) {
-    throw new PipelineError(`could not reach Wikimedia Commons: ${(e as Error).message}`);
-  }
+  const res = await fetchResilient(
+    `${COMMONS_API}?${params}`,
+    { headers: { "user-agent": USER_AGENT } },
+    { service: "Wikimedia Commons", timeoutMs: 30_000 },
+  );
   if (!res.ok) {
     throw new PipelineError(`Wikimedia Commons API error ${res.status}: ${(await res.text()).slice(0, 300)}`);
   }
 
-  const data = (await res.json()) as CommonsResponse;
+  const data = await readJson<CommonsResponse>(res, "Wikimedia Commons");
   if (data.error) {
     throw new PipelineError(`Wikimedia Commons API error: ${data.error.info ?? data.error.code}`);
   }
@@ -127,12 +127,7 @@ export async function searchCommons(query: string, opts: SearchOptions = {}): Pr
 
 /** Download an image to `dest`. Used to fetch a chosen candidate's full image. */
 export async function downloadImage(url: string, dest: string): Promise<void> {
-  let res: Response;
-  try {
-    res = await fetch(url, { headers: { "user-agent": USER_AGENT } });
-  } catch (e) {
-    throw new PipelineError(`could not download image: ${(e as Error).message}`);
-  }
+  const res = await fetchResilient(url, { headers: { "user-agent": USER_AGENT } }, { service: "the image host" });
   if (!res.ok) throw new PipelineError(`failed to download image (${res.status}) from ${url}`);
   writeFileSync(dest, Buffer.from(await res.arrayBuffer()));
 }

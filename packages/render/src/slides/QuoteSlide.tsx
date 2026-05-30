@@ -1,5 +1,6 @@
-import { AbsoluteFill, interpolate, useCurrentFrame } from "remotion";
+import { AbsoluteFill, interpolate } from "remotion";
 import type { Slide } from "@loom/spec";
+import { useEnter } from "../anim";
 
 type QuoteContent = Extract<Slide, { layout: "quote" }>["content"];
 
@@ -9,17 +10,9 @@ type QuoteContent = Extract<Slide, { layout: "quote" }>["content"];
  * Long quotes step down a size so they still fit the frame.
  */
 export function QuoteSlide({ content }: { content: QuoteContent }) {
-  const frame = useCurrentFrame();
-
-  const enter = interpolate(frame, [0, 22], [0, 1], {
-    extrapolateLeft: "clamp",
-    extrapolateRight: "clamp",
-  });
+  const enter = useEnter(730);
   // The attribution trails the quote so the eye lands on the words first.
-  const attrEnter = interpolate(frame, [16, 34], [0, 1], {
-    extrapolateLeft: "clamp",
-    extrapolateRight: "clamp",
-  });
+  const attrEnter = useEnter(600, 530);
 
   const quoteSize = content.text.length > 120 ? "3.6rem" : "5rem";
 

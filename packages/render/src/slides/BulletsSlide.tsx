@@ -1,12 +1,15 @@
-import { AbsoluteFill, interpolate, useCurrentFrame } from "remotion";
+import { AbsoluteFill, interpolate, useCurrentFrame, useVideoConfig } from "remotion";
 import type { Slide } from "@loom/spec";
+import { easedEnter } from "../anim";
 
 type BulletsContent = Extract<Slide, { layout: "bullets" }>["content"];
 
-/** Frames between consecutive bullets appearing, so they cascade in. */
-const STAGGER = 8;
-/** Frames each bullet takes to rise + fade in. */
-const ENTER = 16;
+/** Milliseconds between consecutive bullets appearing, so they cascade in. */
+const STAGGER_MS = 260;
+/** Milliseconds each bullet takes to rise + fade in. */
+const ENTER_MS = 530;
+/** Delay before the first bullet, so the title settles first. */
+const LEAD_MS = 330;
 
 /**
  * A title with a staggered bullet list. Each item rises and fades in a few frames
@@ -16,11 +19,9 @@ const ENTER = 16;
  */
 export function BulletsSlide({ content }: { content: BulletsContent }) {
   const frame = useCurrentFrame();
+  const { fps } = useVideoConfig();
 
-  const titleEnter = interpolate(frame, [0, 18], [0, 1], {
-    extrapolateLeft: "clamp",
-    extrapolateRight: "clamp",
-  });
+  const titleEnter = easedEnter(frame, fps, 600);
 
   // Shrink the items a touch as the list gets long so it stays on-screen.
   const itemSize = content.items.length > 5 ? "2.4rem" : "2.9rem";
@@ -54,11 +55,7 @@ export function BulletsSlide({ content }: { content: BulletsContent }) {
       <ul style={{ listStyle: "none", margin: 0, padding: 0 }}>
         {content.items.map((item, i) => {
           // Bullets start after the title has begun to settle.
-          const start = 10 + i * STAGGER;
-          const enter = interpolate(frame, [start, start + ENTER], [0, 1], {
-            extrapolateLeft: "clamp",
-            extrapolateRight: "clamp",
-          });
+          const enter = easedEnter(frame, fps, ENTER_MS, LEAD_MS + i * STAGGER_MS);
           return (
             <li
               key={i}

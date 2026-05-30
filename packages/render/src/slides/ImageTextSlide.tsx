@@ -1,5 +1,6 @@
 import { AbsoluteFill, Img, interpolate, staticFile, useCurrentFrame, useVideoConfig } from "remotion";
 import type { Motion, Slide } from "@loom/spec";
+import { useEnter } from "../anim";
 import { kenBurnsTransform } from "../motion";
 import { CreditBadge } from "./CreditBadge";
 import { ImagePlaceholder } from "./ImagePlaceholder";
@@ -32,11 +33,7 @@ function SlideImage({ content, motion }: { content: ImageTextContent; motion: Mo
  * `motion` is the resolved Ken Burns move applied to the image.
  */
 export function ImageTextSlide({ content, motion }: { content: ImageTextContent; motion: Motion }) {
-  const frame = useCurrentFrame();
-  const enter = interpolate(frame, [0, 18], [0, 1], {
-    extrapolateLeft: "clamp",
-    extrapolateRight: "clamp",
-  });
+  const enter = useEnter(600);
 
   const side = content.position === "left" || content.position === "right";
   if (side) return <SplitLayout content={content} enter={enter} motion={motion} />;

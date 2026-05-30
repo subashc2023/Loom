@@ -1,5 +1,6 @@
 import { AbsoluteFill, interpolate, useCurrentFrame, useVideoConfig } from "remotion";
 import type { Slide } from "@loom/spec";
+import { easedEnter } from "../anim";
 import {
   classifyDiffLine,
   commentPrefixFor,
@@ -14,10 +15,10 @@ import {
 
 type CodeContent = Extract<Slide, { layout: "code" }>["content"];
 
-/** Frames between consecutive lines appearing, so the block types itself in. */
-const STAGGER = 3;
-/** Frames each line takes to rise + fade in. */
-const ENTER = 12;
+/** Milliseconds between consecutive lines appearing, so the block types itself in. */
+const STAGGER_MS = 100;
+/** Milliseconds each line takes to rise + fade in. */
+const ENTER_MS = 400;
 
 /**
  * Fixed "editor" palette. The code card uses its own dark surface regardless of
@@ -60,7 +61,7 @@ const DIFF_SIGN: Record<DiffKind, { glyph: string; color: string }> = {
  */
 export function CodeSlide({ content }: { content: CodeContent }) {
   const frame = useCurrentFrame();
-  const { width, height } = useVideoConfig();
+  const { width, height, fps } = useVideoConfig();
 
   const lines = splitLines(content.code);
   const isDiff = (content.language ?? "").trim().toLowerCase() === "diff";
@@ -74,11 +75,8 @@ export function CodeSlide({ content }: { content: CodeContent }) {
   const lineHeight = fontPx * 1.55;
   const gutterDigits = String(lines.length).length;
 
-  const cardEnter = interpolate(frame, [0, 12], [0, 1], {
-    extrapolateLeft: "clamp",
-    extrapolateRight: "clamp",
-  });
-  const headerDelay = content.title ? 8 : 4;
+  const cardEnter = easedEnter(frame, fps, 400);
+  const headerDelayMs = content.title ? 266 : 133;
 
   return (
     <AbsoluteFill
@@ -144,11 +142,7 @@ export function CodeSlide({ content }: { content: CodeContent }) {
         >
           {lines.map((line, idx) => {
             const lineNo = idx + 1;
-            const start = headerDelay + idx * STAGGER;
-            const enter = interpolate(frame, [start, start + ENTER], [0, 1], {
-              extrapolateLeft: "clamp",
-              extrapolateRight: "clamp",
-            });
+            const enter = easedEnter(frame, fps, ENTER_MS, headerDelayMs + idx * STAGGER_MS);
 
             const focused = highlight.has(lineNo);
             const diffKind: DiffKind = isDiff ? classifyDiffLine(line) : "context";

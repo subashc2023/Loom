@@ -20,7 +20,7 @@ export type Template = {
   /** Lines appended to the plan stage's system prompt. */
   guidance: string[];
   /** Slide layouts this template favours, surfaced to the planner. */
-  layouts: Array<"title" | "image" | "imageText">;
+  layouts: Array<"title" | "image" | "imageText" | "bullets" | "quote" | "code" | "chart">;
   /** Human-readable scene-count hint used when the user doesn't force one. */
   scenes: string;
 };
@@ -70,8 +70,9 @@ export const TEMPLATES: Record<TemplateKey, Template> = {
     guidance: [
       "This is a TUTORIAL: each scene is ONE concrete step, in order. Use imperative voice ('Open…', 'Run…', 'Click…').",
       "Lead each step with a short heading via 'imageText' so the viewer can follow along. End with a quick recap.",
+      "For anything involving commands or code, use a 'code' slide and spotlight the lines that matter. Use 'bullets' for a recap.",
     ],
-    layouts: ["title", "imageText"],
+    layouts: ["title", "imageText", "code", "bullets"],
     scenes: "5-8",
   },
   pitch: {
@@ -85,8 +86,9 @@ export const TEMPLATES: Record<TemplateKey, Template> = {
     guidance: [
       "This is a PITCH: structure it problem → solution → why-now → the ask. Be confident and concrete, never hypey.",
       "Keep sentences short and punchy. Lean on bold 'title' beats for the hook and the close.",
+      "Use 'bullets' for the few reasons that matter and 'chart' when you have real traction/market numbers from the prompt.",
     ],
-    layouts: ["title", "imageText", "image"],
+    layouts: ["title", "imageText", "image", "bullets", "chart"],
     scenes: "4-6",
   },
   news: {

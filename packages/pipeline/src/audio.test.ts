@@ -1,6 +1,6 @@
 import { describe, expect, test } from "bun:test";
 import { parseProject } from "@loom/spec";
-import { attachAudio, estimateNarrationMs, NARRATION_TAIL_MS } from "./audio";
+import { attachAudio, estimateNarrationMs, fitSlidesToDuration, NARRATION_TAIL_MS } from "./audio";
 
 /** Build a one-scene project and hand back the scene, so we exercise real Scene shapes. */
 function sceneWith(slides: unknown[]) {
@@ -39,6 +39,39 @@ describe("attachAudio", () => {
     const scene = sceneWith([{ id: "s1-1", layout: "title", startMs: 500, durationMs: 3000, content: { title: "Hi" } }]);
     const out = attachAudio(scene, "assets/audio/s1.mp3", 8000);
     expect(out.slides[0]!.durationMs).toBe(3000);
+  });
+});
+
+describe("fitSlidesToDuration", () => {
+  const slide = (id: string, startMs: number, durationMs: number) => ({ id, startMs, durationMs });
+
+  test("collapses a single slide to the whole span", () => {
+    expect(fitSlidesToDuration([slide("a", 0, 10)], 5000)).toEqual([{ id: "a", startMs: 0, durationMs: 5000 }]);
+  });
+
+  test("evenly tiles slides that have no extent yet", () => {
+    const out = fitSlidesToDuration([slide("a", 0, 0), slide("b", 0, 0), slide("c", 0, 0)], 3000);
+    expect(out.map((s) => s.startMs)).toEqual([0, 1000, 2000]);
+    expect(out.map((s) => s.durationMs)).toEqual([1000, 1000, 1000]);
+  });
+
+  test("produces a gap-free, strictly-increasing tiling that fills the span", () => {
+    const out = fitSlidesToDuration([slide("a", 0, 1000), slide("b", 1000, 3000)], 8000);
+    expect(out[0]!.startMs).toBe(0);
+    expect(out[1]!.startMs).toBe(out[0]!.startMs + out[0]!.durationMs); // contiguous
+    expect(out[1]!.startMs + out[1]!.durationMs).toBe(8000); // fills the span
+    // Proportions are preserved: 'a' took 1/4 of the original span.
+    expect(out[0]!.durationMs).toBe(2000);
+  });
+
+  test("returns slides untouched for a non-positive total", () => {
+    const slides = [slide("a", 0, 100)];
+    expect(fitSlidesToDuration(slides, 0)).toBe(slides);
+  });
+
+  test("preserves non-timing fields", () => {
+    const out = fitSlidesToDuration([{ id: "a", startMs: 0, durationMs: 0, layout: "title" }], 2000);
+    expect(out[0]).toMatchObject({ id: "a", layout: "title", startMs: 0, durationMs: 2000 });
   });
 });
 

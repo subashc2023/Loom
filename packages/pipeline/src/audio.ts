@@ -78,6 +78,38 @@ export function attachAudio(scene: Scene, path: string, durationMs: number): Sce
 }
 
 /**
+ * Re-tile a scene's slides so they fill `[0, total]` contiguously in order,
+ * preserving their relative proportions (an even split when they have no extent
+ * yet). Used pre-audio by `plan` (to lay out a multi-slide scene across the
+ * narration estimate) and by `script` (to re-fit after the estimate changes), so
+ * a multi-slide scene always renders gap-free before `cut` snaps the boundaries
+ * onto emphasis beats. Single-slide scenes collapse to the whole span.
+ */
+export function fitSlidesToDuration<T extends { startMs: number; durationMs: number }>(
+  slides: T[],
+  total: number,
+): T[] {
+  const n = slides.length;
+  if (n === 0 || total <= 0) return slides;
+  if (n === 1) return [{ ...slides[0]!, startMs: 0, durationMs: total }];
+
+  const end = Math.max(...slides.map((s) => s.startMs + s.durationMs), 0);
+  const fracStart = (i: number) => (end > 0 ? slides[i]!.startMs / end : i / n);
+
+  // Build strictly-increasing edges, reserving ≥1ms for every remaining slide.
+  const edges: number[] = [];
+  let prev = -1;
+  for (let i = 0; i < n; i++) {
+    const raw = i === 0 ? 0 : Math.round(fracStart(i) * total);
+    const e = Math.min(Math.max(raw, prev + 1), total - (n - i));
+    edges.push(e);
+    prev = e;
+  }
+  edges.push(total);
+  return slides.map((s, i) => ({ ...s, startMs: edges[i]!, durationMs: Math.max(1, edges[i + 1]! - edges[i]!) }));
+}
+
+/**
  * A rough spoken-duration estimate for narration, used by `plan` to size slides
  * before any audio exists (so the project renders immediately). ~150 wpm with a
  * small floor and tail padding. Replaced by the real measured duration once

@@ -1,5 +1,6 @@
 import { PipelineError } from "./errors";
 import { qualityScore, type StockCandidate, USER_AGENT } from "./commons";
+import { fetchResilient, readJson } from "./http";
 
 /**
  * Openverse image search (https://openverse.org). Openverse aggregates openly
@@ -39,17 +40,16 @@ export async function searchOpenverse(query: string, opts: OpenverseOptions = {}
     mature: "false",
   });
 
-  let res: Response;
-  try {
-    res = await fetch(`${OPENVERSE_API}?${params}`, { headers: { "user-agent": USER_AGENT, accept: "application/json" } });
-  } catch (e) {
-    throw new PipelineError(`could not reach Openverse: ${(e as Error).message}`);
-  }
+  const res = await fetchResilient(
+    `${OPENVERSE_API}?${params}`,
+    { headers: { "user-agent": USER_AGENT, accept: "application/json" } },
+    { service: "Openverse", timeoutMs: 30_000 },
+  );
   if (!res.ok) {
     throw new PipelineError(`Openverse API error ${res.status}: ${(await res.text()).slice(0, 200)}`);
   }
 
-  const data = (await res.json()) as OpenverseResponse;
+  const data = await readJson<OpenverseResponse>(res, "Openverse");
   const candidates = (data.results ?? [])
     .map(toCandidate)
     .filter((c): c is StockCandidate => c !== null && c.width >= minWidth);

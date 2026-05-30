@@ -3,6 +3,7 @@ import { extname, isAbsolute, join, resolve } from "node:path";
 import type { Project, Scene, Slide } from "@loom/spec";
 import { requireKey } from "./env";
 import { PipelineError } from "./errors";
+import { fetchResilient, readJson } from "./http";
 
 /**
  * `slides` generates the actual images for slide *briefs* (image/imageText slides
@@ -278,26 +279,26 @@ async function generateImage(
   }
 
   const url = `${API_BASE}/${model || MODEL}:generateContent?key=${apiKey}`;
-  let res: Response;
-  try {
-    res = await fetch(url, {
+  // Image generation is the slowest external call; give it room before timing out.
+  const res = await fetchResilient(
+    url,
+    {
       method: "POST",
       headers: { "content-type": "application/json" },
       body: JSON.stringify({
         contents: [{ parts }],
         generationConfig: { responseModalities: ["IMAGE"], imageConfig: { aspectRatio } },
       }),
-    });
-  } catch (e) {
-    throw new PipelineError(`could not reach the Gemini API: ${(e as Error).message}`);
-  }
+    },
+    { service: "the Gemini API", timeoutMs: 120_000 },
+  );
   if (!res.ok) {
     throw new PipelineError(`Gemini API error ${res.status}: ${(await res.text()).slice(0, 500)}`);
   }
 
-  const data = (await res.json()) as {
+  const data = await readJson<{
     candidates?: Array<{ content?: { parts?: Array<{ inlineData?: { mimeType?: string; data?: string } }> } }>;
-  };
+  }>(res, "the Gemini API");
   const part = data.candidates?.[0]?.content?.parts?.find((p) => p.inlineData?.data);
   const inline = part?.inlineData;
   if (!inline?.data) {

@@ -347,5 +347,3 @@ bun run typecheck      # type-check the whole workspace
 bun run spec:test      # run the spec tests
 bun test packages      # run all tests
 ```
-
-See [PLAN.md](./PLAN.md) for the full design and roadmap.

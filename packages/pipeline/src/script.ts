@@ -1,7 +1,7 @@
 import { z } from "zod";
 import { KNOWN_BEAT_TAGS, parseProject, type Project } from "@loom/spec";
 import { generateStructured } from "./llm";
-import { estimateNarrationMs } from "./audio";
+import { estimateNarrationMs, fitSlidesToDuration } from "./audio";
 import { PipelineError } from "./errors";
 
 /**
@@ -88,9 +88,7 @@ function applyScript(project: Project, out: ScriptOutput): Project {
     // Without audio yet, size slides from the new estimate so the draft stays
     // correct; once voiced, `voice` owns the real durations.
     const durationMs = estimateNarrationMs(result.script);
-    const slides = scene.audio
-      ? scene.slides
-      : scene.slides.map((sl) => (sl.startMs === 0 ? { ...sl, durationMs } : sl));
+    const slides = scene.audio ? scene.slides : fitSlidesToDuration(scene.slides, durationMs);
     const beats = (result.beats ?? []).map((b) => ({ tMs: Math.round(b.at * durationMs), tag: b.tag }));
     return { ...scene, script: result.script, beats, slides };
   });

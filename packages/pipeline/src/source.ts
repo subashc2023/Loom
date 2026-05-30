@@ -228,7 +228,21 @@ function writeManifest(root: string, manifest: Manifest): void {
 function readManifest(root: string, slideId: string): Manifest | null {
   const file = join(candidateDir(root, slideId), "manifest.json");
   if (!existsSync(file)) return null;
-  return JSON.parse(readFileSync(file, "utf8")) as Manifest;
+  let parsed: unknown;
+  try {
+    parsed = JSON.parse(readFileSync(file, "utf8"));
+  } catch (e) {
+    throw new PipelineError(
+      `the staged candidates for "${slideId}" are corrupt (${(e as Error).message}). ` +
+        `Re-run \`loom source --slide ${slideId}\` to regenerate them.`,
+    );
+  }
+  if (!parsed || typeof parsed !== "object" || !Array.isArray((parsed as Manifest).candidates)) {
+    throw new PipelineError(
+      `the staged candidates for "${slideId}" are malformed. Re-run \`loom source --slide ${slideId}\`.`,
+    );
+  }
+  return parsed as Manifest;
 }
 
 /** Extension (with dot) from a URL's path, or "" if none/unknown. */

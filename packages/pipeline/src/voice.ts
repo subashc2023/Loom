@@ -4,6 +4,7 @@ import type { Project, Scene } from "@loom/spec";
 import { attachAudio, probeDurationMs } from "./audio";
 import { requireKey } from "./env";
 import { PipelineError } from "./errors";
+import { fetchResilient } from "./http";
 
 /**
  * `voice` synthesizes each scene's narration with ElevenLabs, writes an mp3 into
@@ -87,16 +88,16 @@ async function synthesizeOne(
   model?: string,
 ): Promise<Buffer> {
   const url = `${API_BASE}/${voiceId}?output_format=${OUTPUT_FORMAT}`;
-  let res: Response;
-  try {
-    res = await fetch(url, {
+  // TTS can take a while for long scenes, so allow a generous per-attempt timeout.
+  const res = await fetchResilient(
+    url,
+    {
       method: "POST",
       headers: { "xi-api-key": apiKey, "content-type": "application/json", accept: "audio/mpeg" },
       body: JSON.stringify({ text, model_id: model || DEFAULT_MODEL }),
-    });
-  } catch (e) {
-    throw new PipelineError(`could not reach ElevenLabs: ${(e as Error).message}`);
-  }
+    },
+    { service: "ElevenLabs", timeoutMs: 120_000 },
+  );
   if (!res.ok) {
     const body = (await res.text()).slice(0, 500);
     // Free ElevenLabs accounts can't use "library" voices via the API; point the
