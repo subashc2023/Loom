@@ -9,7 +9,10 @@
     ".": "./src/index.ts"
   },
   "dependencies": {
+    "@ai-sdk/anthropic": "^3.0.81",
+    "@ai-sdk/openai": "^3.0.67",
     "@loom/spec": "workspace:*",
+    "ai": "^6.0.193",
     "zod": "^3.24.1"
   }
 }

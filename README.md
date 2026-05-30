@@ -75,10 +75,14 @@ Loom never ships keys — the AI steps use **your** accounts. Put them in a `.en
 file inside your project directory (or in your environment):
 
 ```sh
-ANTHROPIC_API_KEY=...     # plan, script  (writing the video)
+ANTHROPIC_API_KEY=...     # plan, script  (writing the video)  — or OPENAI_API_KEY
 ELEVENLABS_API_KEY=...    # voice, align  (text-to-speech + caption timing)
 GEMINI_API_KEY=...        # slides         (image generation)  — or GOOGLE_API_KEY
 ```
+
+The `plan` and `script` steps are model-agnostic: pick the LLM with `--model
+provider:model` (or the `LOOM_MODEL` env var), e.g. `--model openai:gpt-4o` or the
+default `anthropic:claude-opus-4-8`. Set the matching key for whichever provider you choose.
 
 **You don't need any key to try Loom.** These commands work with zero keys:
 

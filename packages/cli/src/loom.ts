@@ -49,7 +49,8 @@ ${c.bold("Options:")}
   -o, --out <path>         render output file (default: output/<quality>.mp4)
       --no-captions        render: drop burned-in captions (--captions forces them on)
       --strict             compose: fail (not warn) on missing assets
-      --model <id>         override the Claude/Gemini model (plan/script/slides)
+      --model <id>         plan/script: LLM as provider:model (e.g. openai:gpt-4o,
+                           anthropic:claude-opus-4-8); slides: the Gemini image model
       --template <key>     init/plan: style preset + plan steering (see: loom templates)
       --aspect <ratio>     init: output shape — 16:9 (default) | 9:16 mobile | 1:1 square
       --scenes <n>         plan: force an exact scene count
@@ -68,7 +69,7 @@ ${c.bold("Options:")}
   -h, --help               show help
 
 ${c.bold("Keys")} (env or a .env in the project):
-  ANTHROPIC_API_KEY · ELEVENLABS_API_KEY · GEMINI_API_KEY
+  ANTHROPIC_API_KEY / OPENAI_API_KEY (plan/script) · ELEVENLABS_API_KEY · GEMINI_API_KEY
 
 ${c.bold("Typical flow:")}
   loom init talk && cd projects/talk

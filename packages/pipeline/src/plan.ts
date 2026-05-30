@@ -1,6 +1,6 @@
 import { z } from "zod";
 import { HexColor, parseProject, type Project } from "@loom/spec";
-import { callClaudeTool, type ClaudeTool } from "./anthropic";
+import { generateStructured } from "./llm";
 import { estimateNarrationMs } from "./audio";
 import { sceneId, slideId } from "./ids";
 import type { Template } from "./templates";
@@ -12,93 +12,72 @@ import type { Template } from "./templates";
  * the project renders immediately, before `voice` measures real durations.
  */
 
-// What we ask Claude to emit. The tool schema (below) is permissive; this Zod
-// schema is strict, so a malformed plan fails loudly instead of corrupting specs.
-const PlanSlide = z.discriminatedUnion("layout", [
-  z.object({ layout: z.literal("title"), title: z.string().min(1), subtitle: z.string().optional() }),
-  z.object({
-    layout: z.literal("image"),
-    imagePrompt: z.string().min(1),
-    searchQuery: z.string().optional(),
-    alt: z.string().optional(),
-  }),
-  z.object({
-    layout: z.literal("imageText"),
-    imagePrompt: z.string().min(1),
-    searchQuery: z.string().optional(),
-    heading: z.string().optional(),
-    body: z.string().min(1),
-    position: z.enum(["left", "right", "top", "bottom"]).optional(),
-  }),
-]);
+// The plan the model must emit. This Zod schema is the single source of truth:
+// the AI SDK derives the provider's JSON Schema from it (descriptions included)
+// and validates the response against it, so a malformed plan fails loudly here
+// instead of corrupting specs.
+const IMAGE_PROMPT = z
+  .string()
+  .min(1)
+  .describe(
+    "image/imageText layout: a vivid, concrete image-generation prompt (subject, setting, style, lighting). No text in the image.",
+  );
+const SEARCH_QUERY = z
+  .string()
+  .optional()
+  .describe(
+    "image/imageText layout: 2-5 plain keywords to find a REAL photo/diagram of this subject in a public image library (name the subject, not the art style). Omit only for purely abstract/decorative visuals.",
+  );
+
+const PlanSlide = z
+  .discriminatedUnion("layout", [
+    z.object({
+      layout: z.literal("title"),
+      title: z.string().min(1).describe("title layout: the on-screen headline."),
+      subtitle: z.string().optional().describe("title layout: optional subtitle."),
+    }),
+    z.object({
+      layout: z.literal("image"),
+      imagePrompt: IMAGE_PROMPT,
+      searchQuery: SEARCH_QUERY,
+      alt: z.string().optional().describe("image layout: optional alt text."),
+    }),
+    z.object({
+      layout: z.literal("imageText"),
+      imagePrompt: IMAGE_PROMPT,
+      searchQuery: SEARCH_QUERY,
+      heading: z.string().optional().describe("imageText layout: short heading shown over the image."),
+      body: z.string().min(1).describe("imageText layout: a 1-2 sentence on-screen caption."),
+      position: z
+        .enum(["left", "right", "top", "bottom"])
+        .optional()
+        .describe("imageText layout: where the text sits relative to the image."),
+    }),
+  ])
+  .describe(
+    "The visual. Use 'title' for the opener/closer, 'image' for a full-bleed visual, 'imageText' for an image with a short caption.",
+  );
 
 const PlanOutput = z.object({
-  title: z.string().min(1),
-  accentColor: z.string().optional(),
+  title: z.string().min(1).describe("Short, punchy video title."),
+  accentColor: z
+    .string()
+    .optional()
+    .describe("Optional accent color as a hex string like #6366f1, chosen to fit the topic's mood."),
   scenes: z
-    .array(z.object({ script: z.string().min(1), slide: PlanSlide }))
-    .min(1),
+    .array(
+      z.object({
+        script: z
+          .string()
+          .min(1)
+          .describe("Narration for this scene: 1-3 spoken sentences. Conversational, no visual stage directions."),
+        slide: PlanSlide,
+      }),
+    )
+    .min(1)
+    .describe("Ordered scenes. Each is ~1 paragraph of narration with one slide."),
 });
 type PlanOutput = z.infer<typeof PlanOutput>;
-
-const PLAN_TOOL: ClaudeTool = {
-  name: "emit_video_plan",
-  description: "Emit the structured plan for the video: a title and an ordered list of scenes.",
-  input_schema: {
-    type: "object",
-    properties: {
-      title: { type: "string", description: "Short, punchy video title." },
-      accentColor: {
-        type: "string",
-        description: "Optional accent color as a hex string like #6366f1, chosen to fit the topic's mood.",
-      },
-      scenes: {
-        type: "array",
-        description: "Ordered scenes. Each is ~1 paragraph of narration with one slide.",
-        items: {
-          type: "object",
-          properties: {
-            script: {
-              type: "string",
-              description: "Narration for this scene: 1-3 spoken sentences. Conversational, no visual stage directions.",
-            },
-            slide: {
-              type: "object",
-              description:
-                "The visual. Use 'title' for the opener/closer, 'image' for a full-bleed visual, 'imageText' for an image with a short caption.",
-              properties: {
-                layout: { type: "string", enum: ["title", "image", "imageText"] },
-                title: { type: "string", description: "title layout: the on-screen headline." },
-                subtitle: { type: "string", description: "title layout: optional subtitle." },
-                imagePrompt: {
-                  type: "string",
-                  description:
-                    "image/imageText layout: a vivid, concrete image-generation prompt (subject, setting, style, lighting). No text in the image.",
-                },
-                searchQuery: {
-                  type: "string",
-                  description:
-                    "image/imageText layout: 2-5 plain keywords to find a REAL photo/diagram of this subject in a public image library (name the subject, not the art style). Omit only for purely abstract/decorative visuals.",
-                },
-                alt: { type: "string", description: "image layout: optional alt text." },
-                heading: { type: "string", description: "imageText layout: short heading shown over the image." },
-                body: { type: "string", description: "imageText layout: a 1-2 sentence on-screen caption." },
-                position: {
-                  type: "string",
-                  enum: ["left", "right", "top", "bottom"],
-                  description: "imageText layout: where the text sits relative to the image.",
-                },
-              },
-              required: ["layout"],
-            },
-          },
-          required: ["script", "slide"],
-        },
-      },
-    },
-    required: ["title", "scenes"],
-  },
-};
 
 function systemPrompt(sceneCount?: number, template?: Template, aspectRatio?: string): string {
   const sceneRule = sceneCount
@@ -158,11 +137,12 @@ export type PlanOptions = {
 
 /** Generate a fresh set of scenes for `base` from a natural-language prompt. */
 export async function planVideo(prompt: string, opts: PlanOptions): Promise<Project> {
-  const plan = await callClaudeTool({
+  const plan = await generateStructured({
     system: systemPrompt(opts.scenes, opts.template, opts.base.meta.aspectRatio),
     user: prompt,
-    tool: PLAN_TOOL,
     schema: PlanOutput,
+    schemaName: "video_plan",
+    schemaDescription: "The structured plan for the video: a title and an ordered list of scenes.",
     model: opts.model,
   });
   return applyPlan(opts.base, plan, opts.template);

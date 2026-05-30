@@ -1,6 +1,6 @@
 import { z } from "zod";
 import { KNOWN_BEAT_TAGS, parseProject, type Project } from "@loom/spec";
-import { callClaudeTool, type ClaudeTool } from "./anthropic";
+import { generateStructured } from "./llm";
 import { estimateNarrationMs } from "./audio";
 import { PipelineError } from "./errors";
 
@@ -11,54 +11,26 @@ import { PipelineError } from "./errors";
  * It operates per scene, preserving order and count.
  */
 
+// The Zod schema is the single source of truth: the AI SDK derives the provider's
+// JSON Schema from it (descriptions included) and validates the response.
 const ScriptBeat = z.object({
   // Fraction (0..1) through the narration where the beat lands; converted to ms
   // against the duration estimate so beats survive before audio exists.
-  at: z.number().min(0).max(1),
-  tag: z.string().min(1),
+  at: z.number().min(0).max(1).describe("Position within the narration, 0 (start) to 1 (end)."),
+  tag: z.string().min(1).describe(`What happens here. Prefer one of: ${KNOWN_BEAT_TAGS.join(", ")}.`),
 });
 
 const ScriptOutput = z.object({
-  scenes: z.array(z.object({ script: z.string().min(1), beats: z.array(ScriptBeat).optional() })),
+  scenes: z
+    .array(
+      z.object({
+        script: z.string().min(1).describe("Polished spoken narration for this scene."),
+        beats: z.array(ScriptBeat).optional().describe("Optional timing markers within this scene's narration."),
+      }),
+    )
+    .describe("One entry per input scene, SAME COUNT and SAME ORDER."),
 });
 type ScriptOutput = z.infer<typeof ScriptOutput>;
-
-const SCRIPT_TOOL: ClaudeTool = {
-  name: "emit_script",
-  description: "Emit the polished narration and timing beats, one entry per scene, in the same order.",
-  input_schema: {
-    type: "object",
-    properties: {
-      scenes: {
-        type: "array",
-        description: "One entry per input scene, SAME COUNT and SAME ORDER.",
-        items: {
-          type: "object",
-          properties: {
-            script: { type: "string", description: "Polished spoken narration for this scene." },
-            beats: {
-              type: "array",
-              description: "Optional timing markers within this scene's narration.",
-              items: {
-                type: "object",
-                properties: {
-                  at: { type: "number", description: "Position within the narration, 0 (start) to 1 (end)." },
-                  tag: {
-                    type: "string",
-                    description: `What happens here. Prefer one of: ${KNOWN_BEAT_TAGS.join(", ")}.`,
-                  },
-                },
-                required: ["at", "tag"],
-              },
-            },
-          },
-          required: ["script"],
-        },
-      },
-    },
-    required: ["scenes"],
-  },
-};
 
 const SYSTEM = [
   "You are the script stage of an AI video pipeline. You polish existing scene narration so it sounds great spoken aloud.",
@@ -92,7 +64,14 @@ export async function writeScript(project: Project, opts: ScriptOptions = {}): P
     2,
   );
 
-  const out = await callClaudeTool({ system: SYSTEM, user, tool: SCRIPT_TOOL, schema: ScriptOutput, model: opts.model });
+  const out = await generateStructured({
+    system: SYSTEM,
+    user,
+    schema: ScriptOutput,
+    schemaName: "script",
+    schemaDescription: "The polished narration and timing beats, one entry per scene, in the same order.",
+    model: opts.model,
+  });
 
   if (out.scenes.length !== project.scenes.length) {
     throw new PipelineError(
